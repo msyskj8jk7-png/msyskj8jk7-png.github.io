@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilder bearbeiten</title>
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --border: #ddd;
+      --text: #222;
+      --accent: #2563eb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Magnific Chaos, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .upload-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+    }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .preview-wrap {
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: center;
+      margin-bottom: 12px;
+    }
+
+    .preview {
+      display: block;
+      max-width: 100%;
+      max-height: 220px;
+      border-radius: 6px;
+      object-fit: contain;
+      background: #fff;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .remove {
+      background: #1612e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bilder bearbeiten</h1>
+
+    <div class="upload-box">
+      <label for="imageInput">Bilder auswählen</label>
+      <input id="imageInput" type="file" accept="image/*" multiple />
+    </div>
+
+    <div id="gallery" class="gallery"></div>
+  </div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const gallery = document.getElementById('gallery');
+
+    imageInput.addEventListener('change', (event) => {
+      const files = Array.from(event.target.files || []);
+
+      files.forEach((file) => {
+        if (!file.type.startsWith('image/')) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            const item = document.createElement('div');
+            item.className = 'item';
+
+            const wrap = document.createElement('div');
+            wrap.className = 'preview-wrap';
+
+            const preview = document.createElement('img');
+            preview.className = 'preview';
+            preview.src = e.target.result;
+            preview.alt = file.name;
+
+            const widthInput = document.createElement('input');
+            widthInput.type = 'number';
+            widthInput.value = img.naturalWidth;
+            widthInput.min = '1';
+            widthInput.placeholder = 'Breite';
+
+            const heightInput = document.createElement('input');
+            heightInput.type = 'number';
+            heightInput.value = img.naturalHeight;
+            heightInput.min = '1';
+            heightInput.placeholder = 'Höhe';
+
+            function updatePreview() {
+              const width = Number(widthInput.value) || img.naturalWidth;
+              const height = Number(heightInput.value) || img.naturalHeight;
+              preview.style.width = width + 'px';
+              preview.style.height = height + 'px';
+            }
+
+            widthInput.addEventListener('input', updatePreview);
+            heightInput.addEventListener('input', updatePreview);
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = 'Herunterladen';
+            downloadBtn.addEventListener('click', () => {
+              const canvas = document.createElement('canvas');
+              const targetWidth = Number(widthInput.value) || img.naturalWidth;
+              const targetHeight = Number(heightInput.value) || img.naturalHeight;
+
+              canvas.width = targetWidth;
+              canvas.height = targetHeight;
+
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+              const link = document.createElement('a');
+              link.download = file.name.replace(/\.[^/.]+$/, '') + '-bearbeitet.png';
+              link.href = canvas.toDataURL('image/png');
+              link.click();
+            });
+
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = 'Entfernen';
+            removeBtn.className = 'remove';
+            removeBtn.addEventListener('click', () => item.remove());
+
+            const controls = document.createElement('div');
+            controls.className = 'controls';
+            controls.innerHTML = '<div><label>Breite</label></div><div><label>Höhe</label></div>';
+
+            const left = document.createElement('div');
+            left.appendChild(widthInput);
+            const right = document.createElement('div');
+            right.appendChild(heightInput);
+
+            controls.appendChild(left);
+            controls.appendChild(right);
+
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+            actions.appendChild(downloadBtn);
+            actions.appendChild(removeBtn);
+
+            wrap.appendChild(preview);
+            item.appendChild(wrap);
+            item.appendChild(controls);
+            item.appendChild(actions);
+            gallery.appendChild(item);
+
+            updatePreview();
+          };
+          img.src = e.target.result;
+        };
+
+        reader.readAsDataURL(file);
+      });
+
+      imageInput.value = '';
+    });
+  </script>
+</body>
+</html>
